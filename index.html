@@ -92,8 +92,6 @@
         <button class="mode-btn active" data-mode="vr" data-type="360">VR 360°</button>
         <button class="mode-btn" data-mode="ar" data-type="180">AR 180°</button>
       </div>
-      
-      <button class="start-button" id="startBtn">Start Experience</button>
     </section>
   </main>
   
@@ -116,6 +114,9 @@
         document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         selectedVideo = card.dataset.video;
+        
+        // Start XR experience immediately
+        startXR();
       });
     });
     
@@ -128,7 +129,6 @@
       });
     });
     
-    document.getElementById('startBtn').addEventListener('click', startXR);
     document.getElementById('exitBtn').addEventListener('click', () => xrSession?.end());
     document.getElementById('fullscreenBtn').addEventListener('click', () => {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen();
@@ -169,8 +169,8 @@
       
       videoMesh = new THREE.Mesh(geometry, videoMaterial);
       
-      // Rotate the video sphere to fix orientation - front content should be at negative Z
-      videoMesh.rotation.y = Math.PI;
+      // Rotate the video sphere to fix orientation - adjust to put front content in front
+      videoMesh.rotation.y = Math.PI / 2; // 90 degrees instead of 180
       
       scene.add(videoMesh);
     }
