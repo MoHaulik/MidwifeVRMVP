@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebXR Video Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #f5f7fa, #e4e7eb); color: #333; overflow: hidden; min-height: 100vh; }
+    
+    /* Header Styles */
+    header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+    .menu-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); border-radius: 25px; padding: 10px 20px; margin: 20px; }
+    .categories { display: flex; list-style: none; gap: 8px; }
+    .categories li { color: white; font-weight: bold; padding: 12px 16px; margin: 0 8px; cursor: pointer; border-radius: 25px; transition: all 0.2s ease-in-out; position: relative; }
+    .categories li:hover { background: linear-gradient(to bottom, #e8edec, #d2d1d3); color: black; transform: scale(1.1); }
+    .categories li.active { background: linear-gradient(to bottom, #e8edec, #d2d1d3); color: black; }
+    .menu-controls { display: flex; gap: 8px; }
+    .icon-button { background: transparent; border: none; color: white; cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.2s ease-in-out; }
+    .icon-button:hover { background: white; color: black; }
+    .icon-button svg { width: 24px; height: 24px; }
+    
+    /* Main Content */
+    main { padding-top: 120px; height: 100vh; display: flex; flex-direction: column; }
+    #content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; }
+    
+    /* Video Selection */
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; width: 100%; max-width: 800px; margin-bottom: 40px; }
+    .video-card { background: white; border-radius: 16px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .video-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+    .video-card.selected { border-color: #007AFF; background: #f0f8ff; }
+    .video-card h3 { margin-bottom: 12px; font-size: 18px; color: #333; }
+    .video-card p { color: #666; font-size: 14px; }
+    
+    /* Mode Selection */
+    .mode-selection { display: flex; gap: 16px; margin-bottom: 32px; }
+    .mode-btn { padding: 12px 24px; background: white; border: 2px solid #ddd; border-radius: 12px; color: #333; cursor: pointer; transition: all 0.2s; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .mode-btn:hover { background: #f5f5f5; transform: translateY(-2px); }
+    .mode-btn.active { border-color: #007AFF; background: #f0f8ff; color: #007AFF; }
+    
+    /* Start Button */
+    .start-button { padding: 16px 48px; font-size: 18px; background: #007AFF; color: white; border: none; border-radius: 16px; cursor: pointer; transition: all 0.2s; font-weight: 600; box-shadow: 0 4px 12px rgba(0,122,255,0.3); }
+    .start-button:hover { background: #0056CC; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,122,255,0.4); }
+    .start-button:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+    
+    /* XR Active Styles */
+    .xr-active header, .xr-active main { display: none; }
+    .exit-xr { position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.9); color: #333; border: none; border-radius: 50%; width: 50px; height: 50px; display: none; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .xr-active .exit-xr { display: flex; }
+    
+    /* Status */
+    #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); color: #333; padding: 12px 24px; border-radius: 16px; font-size: 16px; display: none; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="menu-bar">
+      <ul class="categories">
+        <li data-category="video" class="active">Video</li>
+        <li data-category="mode">Mode</li>
+        <li data-category="start">Start</li>
+      </ul>
+      <div class="menu-controls">
+        <button id="fullscreenBtn" class="icon-button" title="Fullscreen">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 4h6V2H2v8h2V4zm14 0v6h2V2h-8v2h6zm-14 14v-6H2v8h8v-2H4zm14 0h-6v2h8v-8h-2v6z"/>
+          </svg>
+        </button>
+        <button id="refreshBtn" class="icon-button" title="Opdater">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+  
+  <main>
+    <section id="content">
+      <div class="video-grid">
+        <div class="video-card selected" data-video="cgrebet.mp4">
+          <h3>Cgrebet</h3>
+          <p>360° Mono Video</p>
+        </div>
+        <div class="video-card" data-video="klassisk.mp4">
+          <h3>Klassisk</h3>
+          <p>360° Mono Video</p>
+        </div>
+      </div>
+      
+      <div class="mode-selection">
+        <button class="mode-btn active" data-mode="vr" data-type="360">VR 360°</button>
+        <button class="mode-btn" data-mode="ar" data-type="180">AR 180°</button>
+      </div>
+      
+      <button class="start-button" id="startBtn">Start Experience</button>
+    </section>
+  </main>
+  
+  <button class="exit-xr" id="exitBtn">×</button>
+  <div id="status"></div>
+  <video id="video" style="display: none;" playsinline crossorigin="anonymous"></video>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
+
+    let camera, scene, renderer, videoMesh, controllers = [], xrSession = null;
+    let videoElement, videoTexture, videoMaterial;
+    let selectedVideo = 'cgrebet.mp4', sessionMode = 'vr', videoType = '360';
+    let isPlaying = false, currentVolume = 1.0;
+    let controllerState = [{ isPressed: false, pressStart: 0 }, { isPressed: false, pressStart: 0 }];
+    
+    // UI Event Listeners
+    document.querySelectorAll('.video-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedVideo = card.dataset.video;
+      });
+    });
+    
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        sessionMode = btn.dataset.mode;
+        videoType = btn.dataset.type;
+      });
+    });
+    
+    document.getElementById('startBtn').addEventListener('click', startXR);
+    document.getElementById('exitBtn').addEventListener('click', () => xrSession?.end());
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    });
+    document.getElementById('refreshBtn').addEventListener('click', () => location.reload());
+    
+    function init() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+      
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+      
+      scene.add(new THREE.AmbientLight(0x404040));
+      
+      videoElement = document.getElementById('video');
+      videoTexture = new THREE.VideoTexture(videoElement);
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+      
+      videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
+      
+      window.addEventListener('resize', onWindowResize);
+    }
+    
+    function createVideoMesh() {
+      if (videoMesh) scene.remove(videoMesh);
+      
+      let geometry;
+      if (videoType === '360') {
+        geometry = new THREE.SphereGeometry(10, 64, 32);
+      } else {
+        geometry = new THREE.SphereGeometry(10, 64, 32, Math.PI, Math.PI, 0, Math.PI);
+      }
+      
+      videoMesh = new THREE.Mesh(geometry, videoMaterial);
+      scene.add(videoMesh);
+    }
+    
+    function loadVideo() {
+      videoElement.src = selectedVideo;
+      videoElement.autoplay = true;
+      videoElement.playsInline = true;
+      videoElement.volume = currentVolume;
+      videoElement.muted = false;
+      
+      videoElement.addEventListener('loadeddata', () => {
+        updateStatus(`Video loaded: ${selectedVideo}`);
+        createVideoMesh();
+      });
+      
+      videoElement.play().catch(err => {
+        updateStatus('Playback failed: trying muted');
+        videoElement.muted = true;
+        videoElement.play();
+      });
+    }
+    
+    function startXR() {
+      if (!navigator.xr) {
+        updateStatus('WebXR not supported');
+        return;
+      }
+      
+      const mode = sessionMode === 'ar' ? 'immersive-ar' : 'immersive-vr';
+      const options = { optionalFeatures: ['hand-tracking'] };
+      
+      navigator.xr.isSessionSupported(mode)
+        .then(supported => {
+          if (supported) {
+            loadVideo();
+            navigator.xr.requestSession(mode, options)
+              .then(onSessionStarted)
+              .catch(err => updateStatus(`Failed to start ${sessionMode.toUpperCase()}: ` + err.message));
+          } else {
+            updateStatus(`${sessionMode.toUpperCase()} not supported`);
+          }
+        });
+    }
+    
+    function onSessionStarted(session) {
+      xrSession = session;
+      document.body.classList.add('xr-active');
+      
+      renderer.xr.setReferenceSpaceType('local');
+      renderer.xr.setSession(session);
+      renderer.setClearColor(0x000000, sessionMode === 'ar' ? 0 : 1);
+      
+      controllers = [0, 1].map(i => {
+        const controller = renderer.xr.getController(i);
+        controller.addEventListener('selectstart', () => handleSelectStart(i));
+        controller.addEventListener('selectend', () => handleSelectEnd(i));
+        scene.add(controller);
+        return controller;
+      });
+      
+      renderer.setAnimationLoop(render);
+      session.addEventListener('end', onSessionEnd);
+      
+      videoElement.muted = false;
+      videoElement.play().then(() => {
+        isPlaying = true;
+        updateStatus(`${sessionMode.toUpperCase()} active! Trigger: play/pause, Hold: volume/scrub`);
+      });
+    }
+    
+    function handleSelectStart(index) {
+      controllerState[index].isPressed = true;
+      controllerState[index].pressStart = Date.now();
+    }
+    
+    function handleSelectEnd(index) {
+      const state = controllerState[index];
+      const duration = Date.now() - state.pressStart;
+      
+      if (duration < 300) { // Quick press
+        if (isPlaying) {
+          videoElement.pause();
+          isPlaying = false;
+          updateStatus('Paused');
+        } else {
+          videoElement.play();
+          isPlaying = true;
+          updateStatus('Playing');
+        }
+      }
+      
+      state.isPressed = false;
+      state.pressStart = 0;
+    }
+    
+    function onSessionEnd() {
+      document.body.classList.remove('xr-active');
+      document.getElementById('status').style.display = 'none';
+      
+      if (videoElement) {
+        videoElement.pause();
+        isPlaying = false;
+      }
+      
+      controllerState.forEach(state => {
+        state.isPressed = false;
+        state.pressStart = 0;
+      });
+      
+      renderer.setAnimationLoop(null);
+      xrSession = null;
+      
+      controllers.forEach(controller => scene.remove(controller));
+      controllers = [];
+    }
+    
+    function render() {
+      // Update 180° AR positioning
+      if (sessionMode === 'ar' && videoType === '180' && videoMesh) {
+        const direction = new THREE.Vector3(0, 0, -1);
+        direction.applyQuaternion(camera.quaternion);
+        direction.multiplyScalar(5);
+        
+        const targetPosition = new THREE.Vector3().copy(camera.position).add(direction);
+        videoMesh.position.lerp(targetPosition, 0.1);
+        videoMesh.lookAt(camera.position);
+      }
+      
+      if (videoTexture) videoTexture.needsUpdate = true;
+      renderer.render(scene, camera);
+    }
+    
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    function updateStatus(message) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.style.display = 'block';
+      
+      if (!message.includes('error') && !message.includes('failed')) {
+        setTimeout(() => status.style.display = 'none', 3000);
+      }
+    }
+    
+    // Initialize
+    init();
+  </script>
+</body>
+</html>
