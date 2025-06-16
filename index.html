@@ -168,26 +168,52 @@
       }
       
       videoMesh = new THREE.Mesh(geometry, videoMaterial);
+      
+      // Rotate the video sphere to fix orientation - front content should be at negative Z
+      videoMesh.rotation.y = Math.PI;
+      
       scene.add(videoMesh);
     }
     
     function loadVideo() {
+      // Clean up previous video
+      if (videoElement.src) {
+        videoElement.pause();
+        videoElement.currentTime = 0;
+        URL.revokeObjectURL(videoElement.src);
+      }
+      
+      // Reset state
+      isPlaying = false;
+      
       videoElement.src = selectedVideo;
       videoElement.autoplay = true;
       videoElement.playsInline = true;
       videoElement.volume = currentVolume;
       videoElement.muted = false;
+      videoElement.loop = true;
       
-      videoElement.addEventListener('loadeddata', () => {
-        updateStatus(`Video loaded: ${selectedVideo}`);
-        createVideoMesh();
-      });
+      // Remove old event listeners and add fresh ones
+      videoElement.removeEventListener('loadeddata', onVideoLoaded);
+      videoElement.addEventListener('loadeddata', onVideoLoaded);
+      
+      videoElement.load(); // Force reload
       
       videoElement.play().catch(err => {
         updateStatus('Playback failed: trying muted');
         videoElement.muted = true;
-        videoElement.play();
+        videoElement.play().catch(e => {
+          updateStatus('Video load failed: ' + e.message);
+        });
       });
+    }
+    
+    function onVideoLoaded() {
+      updateStatus(`Video loaded: ${selectedVideo}`);
+      createVideoMesh();
+      if (videoTexture) {
+        videoTexture.needsUpdate = true;
+      }
     }
     
     function startXR() {
@@ -267,11 +293,7 @@
       document.body.classList.remove('xr-active');
       document.getElementById('status').style.display = 'none';
       
-      if (videoElement) {
-        videoElement.pause();
-        isPlaying = false;
-      }
-      
+      // Don't pause video on session end - let it continue playing for next session
       controllerState.forEach(state => {
         state.isPressed = false;
         state.pressStart = 0;
@@ -282,6 +304,10 @@
       
       controllers.forEach(controller => scene.remove(controller));
       controllers = [];
+      
+      // Reset camera orientation
+      camera.position.set(0, 0, 0);
+      camera.rotation.set(0, 0, 0);
     }
     
     function render() {
