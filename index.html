@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR Video Player</title>
+  <title>WebXR AR Portal Video Player</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #f5f7fa, #e4e7eb); color: #333; overflow: hidden; min-height: 100vh; }
@@ -37,11 +37,6 @@
     .mode-btn { padding: 12px 24px; background: white; border: 2px solid #ddd; border-radius: 12px; color: #333; cursor: pointer; transition: all 0.2s; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .mode-btn:hover { background: #f5f5f5; transform: translateY(-2px); }
     .mode-btn.active { border-color: #007AFF; background: #f0f8ff; color: #007AFF; }
-    
-    /* Start Button */
-    .start-button { padding: 16px 48px; font-size: 18px; background: #007AFF; color: white; border: none; border-radius: 16px; cursor: pointer; transition: all 0.2s; font-weight: 600; box-shadow: 0 4px 12px rgba(0,122,255,0.3); }
-    .start-button:hover { background: #0056CC; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,122,255,0.4); }
-    .start-button:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
     
     /* XR Active Styles */
     .xr-active header, .xr-active main { display: none; }
@@ -80,17 +75,17 @@
       <div class="video-grid">
         <div class="video-card selected" data-video="cgrebet.mp4">
           <h3>Cgrebet</h3>
-          <p>360° Mono Video</p>
+          <p>360° Portal Video</p>
         </div>
         <div class="video-card" data-video="klassisk.mp4">
           <h3>Klassisk</h3>
-          <p>360° Mono Video</p>
+          <p>360° Portal Video</p>
         </div>
       </div>
       
       <div class="mode-selection">
-        <button class="mode-btn active" data-mode="vr" data-type="360">VR 360°</button>
-        <button class="mode-btn" data-mode="ar" data-type="180">AR 180°</button>
+        <button class="mode-btn active" data-mode="ar" data-type="portal">AR Portal</button>
+        <button class="mode-btn" data-mode="ar" data-type="window">AR Window</button>
       </div>
     </section>
   </main>
@@ -102,11 +97,12 @@
   <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
 
-    let camera, scene, renderer, videoMesh, controllers = [], xrSession = null;
-    let videoElement, videoTexture, videoMaterial;
-    let selectedVideo = 'cgrebet.mp4', sessionMode = 'vr', videoType = '360';
+    let camera, scene, renderer, portalGroup, controllers = [], xrSession = null;
+    let videoElement, videoTexture, videoMaterial, portalMesh, frameMesh;
+    let selectedVideo = 'cgrebet.mp4', sessionMode = 'ar', videoType = 'portal';
     let isPlaying = false, currentVolume = 1.0;
     let controllerState = [{ isPressed: false, pressStart: 0 }, { isPressed: false, pressStart: 0 }];
+    let portalSize = 1.5, portalDistance = 2;
     
     // UI Event Listeners
     document.querySelectorAll('.video-card').forEach(card => {
@@ -114,8 +110,6 @@
         document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         selectedVideo = card.dataset.video;
-        
-        // Start XR experience immediately
         startXR();
       });
     });
@@ -152,38 +146,63 @@
       videoTexture.minFilter = THREE.LinearFilter;
       videoTexture.magFilter = THREE.LinearFilter;
       
-      videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.BackSide });
+      videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
       
       window.addEventListener('resize', onWindowResize);
     }
     
-    function createVideoMesh() {
-      if (videoMesh) scene.remove(videoMesh);
+    function createPortal() {
+      if (portalGroup) scene.remove(portalGroup);
       
-      let geometry;
-      if (videoType === '360') {
-        geometry = new THREE.SphereGeometry(10, 64, 32);
-      } else {
-        geometry = new THREE.SphereGeometry(10, 64, 32, Math.PI, Math.PI, 0, Math.PI);
+      portalGroup = new THREE.Group();
+      
+      // Create portal frame
+      const frameGeometry = new THREE.RingGeometry(portalSize * 0.48, portalSize * 0.52, 32);
+      const frameMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x333333,
+        transparent: true,
+        opacity: 0.8
+      });
+      frameMesh = new THREE.Mesh(frameGeometry, frameMaterial);
+      portalGroup.add(frameMesh);
+      
+      // Create inner video sphere for 360° content
+      const videoSphere = new THREE.SphereGeometry(portalSize * 0.45, 32, 16);
+      portalMesh = new THREE.Mesh(videoSphere, videoMaterial);
+      portalMesh.material.side = THREE.BackSide; // Inside-out for 360°
+      portalGroup.add(portalMesh);
+      
+      // Create portal window effect
+      if (videoType === 'window') {
+        const windowGeometry = new THREE.PlaneGeometry(portalSize, portalSize * 0.75);
+        const windowMesh = new THREE.Mesh(windowGeometry, videoMaterial);
+        portalGroup.remove(portalMesh);
+        portalGroup.add(windowMesh);
+        portalMesh = windowMesh;
       }
       
-      videoMesh = new THREE.Mesh(geometry, videoMaterial);
+      // Position portal in front of user
+      portalGroup.position.set(0, 1.6, -portalDistance);
+      scene.add(portalGroup);
       
-      // Rotate the video sphere to fix orientation - adjust to put front content in front
-      videoMesh.rotation.y = Math.PI / 2; // 90 degrees instead of 180
-      
-      scene.add(videoMesh);
+      // Add subtle glow effect
+      const glowGeometry = new THREE.RingGeometry(portalSize * 0.52, portalSize * 0.58, 32);
+      const glowMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x0077ff,
+        transparent: true,
+        opacity: 0.3
+      });
+      const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+      portalGroup.add(glowMesh);
     }
     
     function loadVideo() {
-      // Clean up previous video
       if (videoElement.src) {
         videoElement.pause();
         videoElement.currentTime = 0;
         URL.revokeObjectURL(videoElement.src);
       }
       
-      // Reset state
       isPlaying = false;
       
       videoElement.src = selectedVideo;
@@ -193,11 +212,10 @@
       videoElement.muted = false;
       videoElement.loop = true;
       
-      // Remove old event listeners and add fresh ones
       videoElement.removeEventListener('loadeddata', onVideoLoaded);
       videoElement.addEventListener('loadeddata', onVideoLoaded);
       
-      videoElement.load(); // Force reload
+      videoElement.load();
       
       videoElement.play().catch(err => {
         updateStatus('Playback failed: trying muted');
@@ -209,8 +227,8 @@
     }
     
     function onVideoLoaded() {
-      updateStatus(`Video loaded: ${selectedVideo}`);
-      createVideoMesh();
+      updateStatus(`Portal video loaded: ${selectedVideo}`);
+      createPortal();
       if (videoTexture) {
         videoTexture.needsUpdate = true;
       }
@@ -222,18 +240,17 @@
         return;
       }
       
-      const mode = sessionMode === 'ar' ? 'immersive-ar' : 'immersive-vr';
-      const options = { optionalFeatures: ['hand-tracking'] };
+      const options = { optionalFeatures: ['hand-tracking', 'local-floor'] };
       
-      navigator.xr.isSessionSupported(mode)
+      navigator.xr.isSessionSupported('immersive-ar')
         .then(supported => {
           if (supported) {
             loadVideo();
-            navigator.xr.requestSession(mode, options)
+            navigator.xr.requestSession('immersive-ar', options)
               .then(onSessionStarted)
-              .catch(err => updateStatus(`Failed to start ${sessionMode.toUpperCase()}: ` + err.message));
+              .catch(err => updateStatus('Failed to start AR: ' + err.message));
           } else {
-            updateStatus(`${sessionMode.toUpperCase()} not supported`);
+            updateStatus('AR not supported');
           }
         });
     }
@@ -242,9 +259,9 @@
       xrSession = session;
       document.body.classList.add('xr-active');
       
-      renderer.xr.setReferenceSpaceType('local');
+      renderer.xr.setReferenceSpaceType('local-floor');
       renderer.xr.setSession(session);
-      renderer.setClearColor(0x000000, sessionMode === 'ar' ? 0 : 1);
+      renderer.setClearColor(0x000000, 0); // Transparent for AR
       
       controllers = [0, 1].map(i => {
         const controller = renderer.xr.getController(i);
@@ -260,29 +277,51 @@
       videoElement.muted = false;
       videoElement.play().then(() => {
         isPlaying = true;
-        updateStatus(`${sessionMode.toUpperCase()} active! Trigger: play/pause, Hold: volume/scrub`);
+        updateStatus('AR Portal active! Trigger: play/pause, Hold: move portal');
       });
     }
     
     function handleSelectStart(index) {
       controllerState[index].isPressed = true;
       controllerState[index].pressStart = Date.now();
+      
+      // Add visual feedback - make portal glow more
+      if (portalGroup) {
+        portalGroup.children.forEach(child => {
+          if (child.material && child.material.opacity !== undefined) {
+            child.material.opacity = Math.min(child.material.opacity * 1.5, 1);
+          }
+        });
+      }
     }
     
     function handleSelectEnd(index) {
       const state = controllerState[index];
       const duration = Date.now() - state.pressStart;
       
-      if (duration < 300) { // Quick press
+      // Reset visual feedback
+      if (portalGroup) {
+        portalGroup.children.forEach(child => {
+          if (child.material && child.material.opacity !== undefined) {
+            child.material.opacity = child.material.opacity / 1.5;
+          }
+        });
+      }
+      
+      if (duration < 300) { // Quick press - play/pause
         if (isPlaying) {
           videoElement.pause();
           isPlaying = false;
-          updateStatus('Paused');
+          updateStatus('Portal paused');
         } else {
           videoElement.play();
           isPlaying = true;
-          updateStatus('Playing');
+          updateStatus('Portal playing');
         }
+      } else { // Long press - cycle portal size
+        portalSize = portalSize >= 2 ? 1 : portalSize + 0.5;
+        createPortal();
+        updateStatus(`Portal size: ${portalSize.toFixed(1)}m`);
       }
       
       state.isPressed = false;
@@ -293,7 +332,6 @@
       document.body.classList.remove('xr-active');
       document.getElementById('status').style.display = 'none';
       
-      // Don't pause video on session end - let it continue playing for next session
       controllerState.forEach(state => {
         state.isPressed = false;
         state.pressStart = 0;
@@ -305,21 +343,30 @@
       controllers.forEach(controller => scene.remove(controller));
       controllers = [];
       
-      // Reset camera orientation
       camera.position.set(0, 0, 0);
       camera.rotation.set(0, 0, 0);
     }
     
     function render() {
-      // Update 180° AR positioning
-      if (sessionMode === 'ar' && videoType === '180' && videoMesh) {
+      // Animate portal - gentle floating motion
+      if (portalGroup) {
+        const time = Date.now() * 0.001;
+        portalGroup.position.y = 1.6 + Math.sin(time * 0.5) * 0.1;
+        portalGroup.rotation.y = Math.sin(time * 0.3) * 0.1;
+        
+        // Portal follows user gaze loosely
         const direction = new THREE.Vector3(0, 0, -1);
         direction.applyQuaternion(camera.quaternion);
-        direction.multiplyScalar(5);
+        direction.multiplyScalar(portalDistance);
         
         const targetPosition = new THREE.Vector3().copy(camera.position).add(direction);
-        videoMesh.position.lerp(targetPosition, 0.1);
-        videoMesh.lookAt(camera.position);
+        targetPosition.y = portalGroup.position.y;
+        
+        portalGroup.position.x = THREE.MathUtils.lerp(portalGroup.position.x, targetPosition.x, 0.02);
+        portalGroup.position.z = THREE.MathUtils.lerp(portalGroup.position.z, targetPosition.z, 0.02);
+        
+        // Make portal face user
+        portalGroup.lookAt(camera.position);
       }
       
       if (videoTexture) videoTexture.needsUpdate = true;
