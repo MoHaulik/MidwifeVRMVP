@@ -170,6 +170,7 @@
       const videoSphere = new THREE.SphereGeometry(portalSize * 0.45, 32, 16);
       portalMesh = new THREE.Mesh(videoSphere, videoMaterial);
       portalMesh.material.side = THREE.BackSide; // Inside-out for 360°
+      portalMesh.rotation.y = THREE.MathUtils.degToRad(80); // Rotate video 80 degrees
       portalGroup.add(portalMesh);
       
       // Create portal window effect
@@ -185,12 +186,12 @@
       portalGroup.position.set(0, 1.6, -portalDistance);
       scene.add(portalGroup);
       
-      // Add subtle glow effect
-      const glowGeometry = new THREE.RingGeometry(portalSize * 0.52, portalSize * 0.58, 32);
+      // Add subtle beige glow effect
+      const glowGeometry = new THREE.RingGeometry(portalSize * 0.52, portalSize * 0.55, 32);
       const glowMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x0077ff,
+        color: 0xF5F5DC,
         transparent: true,
-        opacity: 0.3
+        opacity: 0.15
       });
       const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
       portalGroup.add(glowMesh);
