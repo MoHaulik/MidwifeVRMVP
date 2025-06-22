@@ -1,397 +1,888 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR AR Portal Video Player</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #f5f7fa, #e4e7eb); color: #333; overflow: hidden; min-height: 100vh; }
-    
-    /* Header Styles */
-    header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
-    .menu-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); border-radius: 25px; padding: 10px 20px; margin: 20px; }
-    .categories { display: flex; list-style: none; gap: 8px; }
-    .categories li { color: white; font-weight: bold; padding: 12px 16px; margin: 0 8px; cursor: pointer; border-radius: 25px; transition: all 0.2s ease-in-out; position: relative; }
-    .categories li:hover { background: linear-gradient(to bottom, #e8edec, #d2d1d3); color: black; transform: scale(1.1); }
-    .categories li.active { background: linear-gradient(to bottom, #e8edec, #d2d1d3); color: black; }
-    .menu-controls { display: flex; gap: 8px; }
-    .icon-button { background: transparent; border: none; color: white; cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.2s ease-in-out; }
-    .icon-button:hover { background: white; color: black; }
-    .icon-button svg { width: 24px; height: 24px; }
-    
-    /* Main Content */
-    main { padding-top: 120px; height: 100vh; display: flex; flex-direction: column; }
-    #content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; }
-    
-    /* Video Selection */
-    .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; width: 100%; max-width: 800px; margin-bottom: 40px; }
-    .video-card { background: white; border-radius: 16px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .video-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
-    .video-card.selected { border-color: #007AFF; background: #f0f8ff; }
-    .video-card h3 { margin-bottom: 12px; font-size: 18px; color: #333; }
-    .video-card p { color: #666; font-size: 14px; }
-    
-    /* Mode Selection */
-    .mode-selection { display: flex; gap: 16px; margin-bottom: 32px; }
-    .mode-btn { padding: 12px 24px; background: white; border: 2px solid #ddd; border-radius: 12px; color: #333; cursor: pointer; transition: all 0.2s; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .mode-btn:hover { background: #f5f5f5; transform: translateY(-2px); }
-    .mode-btn.active { border-color: #007AFF; background: #f0f8ff; color: #007AFF; }
-    
-    /* XR Active Styles */
-    .xr-active header, .xr-active main { display: none; }
-    .exit-xr { position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.9); color: #333; border: none; border-radius: 50%; width: 50px; height: 50px; display: none; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .xr-active .exit-xr { display: flex; }
-    
-    /* Status */
-    #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); color: #333; padding: 12px 24px; border-radius: 16px; font-size: 16px; display: none; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Training VR - Branching Scenarios</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #fff; 
+            overflow: hidden; 
+            min-height: 100vh; 
+        }
+        
+        /* Intro Screen */
+        #intro {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+            z-index: 1000;
+        }
+        #intro h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        #intro h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        #intro p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            opacity: 0.8;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        #intro button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #fff;
+            color: #fff;
+            border-radius: 50px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        #intro button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        /* XR Active Styles */
+        .xr-active #intro { display: none; }
+        .exit-xr {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .xr-active .exit-xr { display: flex; }
+        
+        /* Status */
+        #status {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 16px;
+            font-size: 16px;
+            display: none;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        /* Progress Indicator */
+        #progress {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+        .xr-active #progress { display: block; }
+    </style>
 </head>
 <body>
-  <header>
-    <nav class="menu-bar">
-      <ul class="categories">
-        <li data-category="video" class="active">Video</li>
-        <li data-category="mode">Mode</li>
-        <li data-category="start">Start</li>
-      </ul>
-      <div class="menu-controls">
-        <button id="fullscreenBtn" class="icon-button" title="Fullscreen">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 4h6V2H2v8h2V4zm14 0v6h2V2h-8v2h6zm-14 14v-6H2v8h8v-2H4zm14 0h-6v2h8v-8h-2v6z"/>
-          </svg>
-        </button>
-        <button id="refreshBtn" class="icon-button" title="Opdater">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-          </svg>
-        </button>
-      </div>
-    </nav>
-  </header>
-  
-  <main>
-    <section id="content">
-      <div class="video-grid">
-        <div class="video-card selected" data-video="cgrebet.mp4">
-          <h3>Cgrebet</h3>
-          <p>360° Portal Video</p>
-        </div>
-        <div class="video-card" data-video="klassisk.mp4">
-          <h3>Klassisk</h3>
-          <p>360° Portal Video</p>
-        </div>
-      </div>
-      
-      <div class="mode-selection">
-        <button class="mode-btn active" data-mode="ar" data-type="portal">AR Portal</button>
-        <button class="mode-btn" data-mode="ar" data-type="window">AR Window</button>
-      </div>
-    </section>
-  </main>
-  
-  <button class="exit-xr" id="exitBtn">×</button>
-  <div id="status"></div>
-  <video id="video" style="display: none;" playsinline crossorigin="anonymous"></video>
+    <div id="intro">
+        <h1>Healthcare Training VR</h1>
+        <h2>Branching Scenarios</h2>
+        <p>
+            Immersive 360° video training for healthcare professionals.<br>
+            Watch scenarios unfold and make critical decisions that shape the outcome.<br>
+            Use hand controllers to select your responses and learn from realistic situations.
+        </p>
+        <button id="start">Start Training</button>
+    </div>
+    
+    <button class="exit-xr" id="exitBtn">×</button>
+    <div id="status"></div>
+    <div id="progress">
+        <div>Scenario: <span id="current-scenario">1</span> of <span id="total-scenarios">2</span></div>
+        <div>Progress: <span id="scenario-progress">Ready</span></div>
+    </div>
+    
+    <video id="video" style="display: none;" playsinline crossorigin="anonymous" muted></video>
 
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
 
-    let camera, scene, renderer, portalGroup, controllers = [], xrSession = null;
-    let videoElement, videoTexture, videoMaterial, portalMesh, frameMesh;
-    let selectedVideo = 'cgrebet.mp4', sessionMode = 'ar', videoType = 'portal';
-    let isPlaying = false, currentVolume = 1.0;
-    let controllerState = [{ isPressed: false, pressStart: 0 }, { isPressed: false, pressStart: 0 }];
-    let portalSize = 1.5, portalDistance = 2;
-    
-    // UI Event Listeners
-    document.querySelectorAll('.video-card').forEach(card => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        selectedVideo = card.dataset.video;
-        startXR();
-      });
-    });
-    
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        sessionMode = btn.dataset.mode;
-        videoType = btn.dataset.type;
-      });
-    });
-    
-    document.getElementById('exitBtn').addEventListener('click', () => xrSession?.end());
-    document.getElementById('fullscreenBtn').addEventListener('click', () => {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-      else document.exitFullscreen();
-    });
-    document.getElementById('refreshBtn').addEventListener('click', () => location.reload());
-    
-    function init() {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-      
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
-      
-      scene.add(new THREE.AmbientLight(0x404040));
-      
-      videoElement = document.getElementById('video');
-      videoTexture = new THREE.VideoTexture(videoElement);
-      videoTexture.minFilter = THREE.LinearFilter;
-      videoTexture.magFilter = THREE.LinearFilter;
-      
-      videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-      
-      window.addEventListener('resize', onWindowResize);
-    }
-    
-    function createPortal() {
-      if (portalGroup) scene.remove(portalGroup);
-      
-      portalGroup = new THREE.Group();
-      
-      // Create portal frame
-      const frameGeometry = new THREE.RingGeometry(portalSize * 0.48, portalSize * 0.52, 32);
-      const frameMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x333333,
-        transparent: true,
-        opacity: 0.8
-      });
-      frameMesh = new THREE.Mesh(frameGeometry, frameMaterial);
-      portalGroup.add(frameMesh);
-      
-      // Create inner video sphere for 360° content
-      const videoSphere = new THREE.SphereGeometry(portalSize * 0.45, 32, 16);
-      portalMesh = new THREE.Mesh(videoSphere, videoMaterial);
-      portalMesh.material.side = THREE.BackSide; // Inside-out for 360°
-      portalMesh.rotation.y = THREE.MathUtils.degToRad(80); // Rotate video 80 degrees
-      portalGroup.add(portalMesh);
-      
-      // Create portal window effect
-      if (videoType === 'window') {
-        const windowGeometry = new THREE.PlaneGeometry(portalSize, portalSize * 0.75);
-        const windowMesh = new THREE.Mesh(windowGeometry, videoMaterial);
-        portalGroup.remove(portalMesh);
-        portalGroup.add(windowMesh);
-        portalMesh = windowMesh;
-      }
-      
-      // Position portal in front of user
-      portalGroup.position.set(0, 1.6, -portalDistance);
-      scene.add(portalGroup);
-      
-      // Add subtle beige glow effect
-      const glowGeometry = new THREE.RingGeometry(portalSize * 0.52, portalSize * 0.55, 32);
-      const glowMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xF5F5DC,
-        transparent: true,
-        opacity: 0.15
-      });
-      const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-      portalGroup.add(glowMesh);
-    }
-    
-    function loadVideo() {
-      if (videoElement.src) {
-        videoElement.pause();
-        videoElement.currentTime = 0;
-        URL.revokeObjectURL(videoElement.src);
-      }
-      
-      isPlaying = false;
-      
-      videoElement.src = selectedVideo;
-      videoElement.autoplay = true;
-      videoElement.playsInline = true;
-      videoElement.volume = currentVolume;
-      videoElement.muted = false;
-      videoElement.loop = true;
-      
-      videoElement.removeEventListener('loadeddata', onVideoLoaded);
-      videoElement.addEventListener('loadeddata', onVideoLoaded);
-      
-      videoElement.load();
-      
-      videoElement.play().catch(err => {
-        updateStatus('Playback failed: trying muted');
-        videoElement.muted = true;
-        videoElement.play().catch(e => {
-          updateStatus('Video load failed: ' + e.message);
+        let camera, scene, renderer, immersiveSphere, controllers = [], xrSession = null;
+        let videoElement, videoTexture, videoMaterial;
+        let isPlaying = false, currentScenario = 1, isDecisionTime = false;
+        let decisionPanel, choiceOrbs = [], confirmationPanel;
+        let currentChoices = [], selectedChoice = null, isConfirming = false;
+        let transitionEffect = null;
+        
+        // Training scenarios configuration
+        const scenarios = {
+            1: {
+                video: 'cgrebet.mp4',
+                decisionTime: 8000, // Show decision after 8 seconds
+                text: "You notice a patient showing signs of distress during a routine check-up. Their breathing appears labored and they seem anxious. What is your immediate priority?",
+                choices: [
+                    { id: 1, text: "Take vital signs immediately", correct: true, next: 2 },
+                    { id: 2, text: "Call for emergency assistance", correct: false, next: 1 },
+                    { id: 3, text: "Ask about their medical history", correct: false, next: 1 },
+                    { id: 4, text: "Provide reassurance and calm them", correct: false, next: 1 },
+                    { id: 5, text: "Continue with routine procedure", correct: false, next: 1 }
+                ]
+            },
+            2: {
+                video: 'klassisk.mp4',
+                decisionTime: 10000, // Show decision after 10 seconds
+                text: "The patient's vital signs show elevated heart rate and blood pressure. They mention chest tightness. The situation requires careful assessment and appropriate action.",
+                choices: [
+                    { id: 1, text: "Administer oxygen immediately", correct: false, next: 1 },
+                    { id: 2, text: "Perform ECG and contact physician", correct: true, next: 'complete' },
+                    { id: 3, text: "Give them water and wait", correct: false, next: 1 },
+                    { id: 4, text: "Suggest they lie down and rest", correct: false, next: 1 },
+                    { id: 5, text: "Schedule follow-up appointment", correct: false, next: 1 }
+                ]
+            }
+        };
+        
+        // UI Event Listeners
+        document.getElementById('start').addEventListener('click', () => {
+            document.getElementById('intro').style.display = 'none';
+            initXR();
         });
-      });
-    }
-    
-    function onVideoLoaded() {
-      updateStatus(`Portal video loaded: ${selectedVideo}`);
-      createPortal();
-      if (videoTexture) {
-        videoTexture.needsUpdate = true;
-      }
-    }
-    
-    function startXR() {
-      if (!navigator.xr) {
-        updateStatus('WebXR not supported');
-        return;
-      }
-      
-      const options = { optionalFeatures: ['hand-tracking', 'local-floor'] };
-      
-      navigator.xr.isSessionSupported('immersive-ar')
-        .then(supported => {
-          if (supported) {
-            loadVideo();
-            navigator.xr.requestSession('immersive-ar', options)
-              .then(onSessionStarted)
-              .catch(err => updateStatus('Failed to start AR: ' + err.message));
-          } else {
-            updateStatus('AR not supported');
-          }
-        });
-    }
-    
-    function onSessionStarted(session) {
-      xrSession = session;
-      document.body.classList.add('xr-active');
-      
-      renderer.xr.setReferenceSpaceType('local-floor');
-      renderer.xr.setSession(session);
-      renderer.setClearColor(0x000000, 0); // Transparent for AR
-      
-      controllers = [0, 1].map(i => {
-        const controller = renderer.xr.getController(i);
-        controller.addEventListener('selectstart', () => handleSelectStart(i));
-        controller.addEventListener('selectend', () => handleSelectEnd(i));
-        scene.add(controller);
-        return controller;
-      });
-      
-      renderer.setAnimationLoop(render);
-      session.addEventListener('end', onSessionEnd);
-      
-      videoElement.muted = false;
-      videoElement.play().then(() => {
-        isPlaying = true;
-        updateStatus('AR Portal active! Trigger: play/pause, Hold: move portal');
-      });
-    }
-    
-    function handleSelectStart(index) {
-      controllerState[index].isPressed = true;
-      controllerState[index].pressStart = Date.now();
-      
-      // Add visual feedback - make portal glow more
-      if (portalGroup) {
-        portalGroup.children.forEach(child => {
-          if (child.material && child.material.opacity !== undefined) {
-            child.material.opacity = Math.min(child.material.opacity * 1.5, 1);
-          }
-        });
-      }
-    }
-    
-    function handleSelectEnd(index) {
-      const state = controllerState[index];
-      const duration = Date.now() - state.pressStart;
-      
-      // Reset visual feedback
-      if (portalGroup) {
-        portalGroup.children.forEach(child => {
-          if (child.material && child.material.opacity !== undefined) {
-            child.material.opacity = child.material.opacity / 1.5;
-          }
-        });
-      }
-      
-      if (duration < 300) { // Quick press - play/pause
-        if (isPlaying) {
-          videoElement.pause();
-          isPlaying = false;
-          updateStatus('Portal paused');
-        } else {
-          videoElement.play();
-          isPlaying = true;
-          updateStatus('Portal playing');
+        
+        document.getElementById('exitBtn').addEventListener('click', () => xrSession?.end());
+        
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            scene.add(new THREE.AmbientLight(0x404040, 0.6));
+            scene.add(new THREE.DirectionalLight(0xffffff, 0.4));
+            
+            videoElement = document.getElementById('video');
+            videoTexture = new THREE.VideoTexture(videoElement);
+            videoTexture.minFilter = THREE.LinearFilter;
+            videoTexture.magFilter = THREE.LinearFilter;
+            
+            videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+            
+            window.addEventListener('resize', onWindowResize);
         }
-      } else { // Long press - cycle portal size
-        portalSize = portalSize >= 2 ? 1 : portalSize + 0.5;
-        createPortal();
-        updateStatus(`Portal size: ${portalSize.toFixed(1)}m`);
-      }
-      
-      state.isPressed = false;
-      state.pressStart = 0;
-    }
-    
-    function onSessionEnd() {
-      document.body.classList.remove('xr-active');
-      document.getElementById('status').style.display = 'none';
-      
-      controllerState.forEach(state => {
-        state.isPressed = false;
-        state.pressStart = 0;
-      });
-      
-      renderer.setAnimationLoop(null);
-      xrSession = null;
-      
-      controllers.forEach(controller => scene.remove(controller));
-      controllers = [];
-      
-      camera.position.set(0, 0, 0);
-      camera.rotation.set(0, 0, 0);
-    }
-    
-    function render() {
-      // Animate portal - gentle floating motion
-      if (portalGroup) {
-        const time = Date.now() * 0.001;
-        portalGroup.position.y = 1.6 + Math.sin(time * 0.5) * 0.1;
-        portalGroup.rotation.y = Math.sin(time * 0.3) * 0.1;
         
-        // Portal follows user gaze loosely
-        const direction = new THREE.Vector3(0, 0, -1);
-        direction.applyQuaternion(camera.quaternion);
-        direction.multiplyScalar(portalDistance);
+        function initXR() {
+            init();
+            
+            if (!navigator.xr) {
+                updateStatus('WebXR not supported');
+                return;
+            }
+            
+            navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+                if (supported) {
+                    navigator.xr.requestSession('immersive-vr', {
+                        optionalFeatures: ['hand-tracking', 'local-floor']
+                    }).then(onSessionStarted);
+                } else {
+                    updateStatus('VR not supported');
+                }
+            });
+        }
         
-        const targetPosition = new THREE.Vector3().copy(camera.position).add(direction);
-        targetPosition.y = portalGroup.position.y;
+        function onSessionStarted(session) {
+            xrSession = session;
+            document.body.classList.add('xr-active');
+            
+            renderer.xr.setReferenceSpaceType('local-floor');
+            renderer.xr.setSession(session);
+            renderer.setClearColor(0x000000, 1);
+            
+            setupControllers();
+            startScenario(currentScenario);
+            
+            renderer.setAnimationLoop(render);
+            session.addEventListener('end', onSessionEnd);
+            
+            updateStatus('Healthcare Training Started - Watch and make decisions');
+            updateProgress();
+        }
         
-        portalGroup.position.x = THREE.MathUtils.lerp(portalGroup.position.x, targetPosition.x, 0.02);
-        portalGroup.position.z = THREE.MathUtils.lerp(portalGroup.position.z, targetPosition.z, 0.02);
+        function setupControllers() {
+            for (let i = 0; i < 2; i++) {
+                const controller = renderer.xr.getController(i);
+                controller.userData.id = i;
+                
+                // Add hand visual
+                const handGeometry = new THREE.SphereGeometry(0.01, 12, 12);
+                const handMaterial = new THREE.MeshBasicMaterial({
+                    color: i === 0 ? 0x88aaff : 0xff8888,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const handMesh = new THREE.Mesh(handGeometry, handMaterial);
+                controller.add(handMesh);
+                
+                controller.addEventListener('selectstart', onSelectStart);
+                controller.addEventListener('selectend', onSelectEnd);
+                scene.add(controller);
+                controllers.push(controller);
+            }
+        }
         
-        // Make portal face user
-        portalGroup.lookAt(camera.position);
-      }
-      
-      if (videoTexture) videoTexture.needsUpdate = true;
-      renderer.render(scene, camera);
-    }
-    
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-    
-    function updateStatus(message) {
-      const status = document.getElementById('status');
-      status.textContent = message;
-      status.style.display = 'block';
-      
-      if (!message.includes('error') && !message.includes('failed')) {
-        setTimeout(() => status.style.display = 'none', 3000);
-      }
-    }
-    
-    // Initialize
-    init();
-  </script>
+        function createImmersiveSphere() {
+            if (immersiveSphere) scene.remove(immersiveSphere);
+            
+            const sphereGeometry = new THREE.SphereGeometry(10, 32, 16);
+            immersiveSphere = new THREE.Mesh(sphereGeometry, videoMaterial);
+            immersiveSphere.material.side = THREE.BackSide;
+            immersiveSphere.rotation.y = THREE.MathUtils.degToRad(80);
+            scene.add(immersiveSphere);
+        }
+        
+        function startScenario(scenarioId) {
+            if (!scenarios[scenarioId]) {
+                completeTraining();
+                return;
+            }
+            
+            currentScenario = scenarioId;
+            isDecisionTime = false;
+            isConfirming = false;
+            selectedChoice = null;
+            
+            // Clear existing UI elements
+            clearDecisionUI();
+            
+            loadVideo(scenarios[scenarioId].video);
+            updateProgress();
+            
+            // Set timer for decision point
+            setTimeout(() => {
+                if (isPlaying && !isDecisionTime) {
+                    showDecisionPoint();
+                }
+            }, scenarios[scenarioId].decisionTime);
+        }
+        
+        function loadVideo(videoFile) {
+            if (videoElement.src) {
+                videoElement.pause();
+                videoElement.currentTime = 0;
+                URL.revokeObjectURL(videoElement.src);
+            }
+            
+            isPlaying = false;
+            
+            videoElement.src = videoFile;
+            videoElement.autoplay = true;
+            videoElement.playsInline = true;
+            videoElement.muted = true; // Start muted for VR
+            videoElement.loop = false;
+            
+            videoElement.removeEventListener('loadeddata', onVideoLoaded);
+            videoElement.addEventListener('loadeddata', onVideoLoaded);
+            
+            videoElement.load();
+            
+            videoElement.play().then(() => {
+                isPlaying = true;
+                videoElement.muted = false; // Unmute after starting
+            }).catch(err => {
+                updateStatus('Video playback failed: ' + err.message);
+            });
+        }
+        
+        function onVideoLoaded() {
+            createImmersiveSphere();
+            if (videoTexture) {
+                videoTexture.needsUpdate = true;
+            }
+            updateStatus(`Scenario ${currentScenario} loaded`);
+        }
+        
+        function showDecisionPoint() {
+            if (isDecisionTime) return;
+            
+            isDecisionTime = true;
+            
+            // Slow down video to 0.3x speed
+            videoElement.playbackRate = 0.3;
+            
+            const scenario = scenarios[currentScenario];
+            currentChoices = scenario.choices;
+            
+            createDecisionPanel(scenario.text, scenario.choices);
+            updateStatus('Decision time - Select your response');
+        }
+        
+        function createDecisionPanel(text, choices) {
+            clearDecisionUI();
+            
+            // Create main decision panel
+            decisionPanel = new THREE.Group();
+            decisionPanel.position.set(0, 1.6, -1.5);
+            
+            // Background panel
+            const panelGeometry = new THREE.PlaneGeometry(2.5, 1.5);
+            const panelMaterial = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 0.8
+            });
+            const panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
+            decisionPanel.add(panelMesh);
+            
+            // Create text canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = 'rgba(0, 20, 40, 0.95)';
+            ctx.fillRect(0, 0, 1024, 512);
+            
+            // Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            // Word wrap text
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            const maxWidth = 900;
+            
+            words.forEach(word => {
+                const testLine = currentLine + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && currentLine !== '') {
+                    lines.push(currentLine);
+                    currentLine = word + ' ';
+                } else {
+                    currentLine = testLine;
+                }
+            });
+            lines.push(currentLine);
+            
+            // Draw lines
+            lines.forEach((line, index) => {
+                ctx.fillText(line, 512, 60 + (index * 40));
+            });
+            
+            // Instructions
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#aaaaaa';
+            ctx.fillText('Point and select a numbered choice below:', 512, 400);
+            
+            const textTexture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshBasicMaterial({
+                map: textTexture,
+                transparent: true
+            });
+            
+            const textMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(2.4, 1.2),
+                textMaterial
+            );
+            textMesh.position.z = 0.01;
+            decisionPanel.add(textMesh);
+            
+            scene.add(decisionPanel);
+            
+            // Create choice orbs
+            createChoiceOrbs(choices);
+        }
+        
+        function createChoiceOrbs(choices) {
+            choiceOrbs = [];
+            
+            const orbGroup = new THREE.Group();
+            orbGroup.position.set(0, 0.8, -1.2);
+            
+            choices.forEach((choice, index) => {
+                const angle = (index / choices.length) * Math.PI * 2 - Math.PI / 2;
+                const radius = 0.6;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                const orbGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+                const orbMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x4488ff,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const orb = new THREE.Mesh(orbGeometry, orbMaterial);
+                orb.position.set(x, 0, z);
+                
+                // Add glow effect
+                const glowGeometry = new THREE.SphereGeometry(0.12, 12, 12);
+                const glowMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x6699ff,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                orb.add(glow);
+                
+                // Add number label
+                const numberCanvas = document.createElement('canvas');
+                numberCanvas.width = 128;
+                numberCanvas.height = 128;
+                const numberCtx = numberCanvas.getContext('2d');
+                
+                numberCtx.fillStyle = '#ffffff';
+                numberCtx.font = 'bold 72px Arial';
+                numberCtx.textAlign = 'center';
+                numberCtx.textBaseline = 'middle';
+                numberCtx.fillText(choice.id.toString(), 64, 64);
+                
+                const numberTexture = new THREE.CanvasTexture(numberCanvas);
+                const numberMaterial = new THREE.MeshBasicMaterial({
+                    map: numberTexture,
+                    transparent: true
+                });
+                
+                const numberMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.1, 0.1),
+                    numberMaterial
+                );
+                numberMesh.position.z = 0.09;
+                orb.add(numberMesh);
+                
+                orb.userData = {
+                    isChoice: true,
+                    choice: choice,
+                    originalMaterial: orbMaterial,
+                    glow: glow
+                };
+                
+                orbGroup.add(orb);
+                choiceOrbs.push(orb);
+            });
+            
+            scene.add(orbGroup);
+        }
+        
+        function onSelectStart(event) {
+            if (!isDecisionTime) return;
+            
+            const controller = event.target;
+            const intersectedChoice = findIntersectedChoice(controller);
+            
+            if (intersectedChoice && !isConfirming) {
+                selectChoice(intersectedChoice);
+            } else if (isConfirming && confirmationPanel) {
+                handleConfirmation(controller);
+            }
+        }
+        
+        function onSelectEnd(event) {
+            // Handle select end if needed
+        }
+        
+        function findIntersectedChoice(controller) {
+            const controllerPos = new THREE.Vector3();
+            controller.getWorldPosition(controllerPos);
+            
+            let closestChoice = null;
+            let closestDistance = 0.15;
+            
+            choiceOrbs.forEach(orb => {
+                const orbPos = new THREE.Vector3();
+                orb.getWorldPosition(orbPos);
+                const distance = controllerPos.distanceTo(orbPos);
+                
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestChoice = orb;
+                }
+            });
+            
+            return closestChoice;
+        }
+        
+        function selectChoice(choiceOrb) {
+            // Reset all orbs
+            choiceOrbs.forEach(orb => {
+                orb.userData.originalMaterial.color.setHex(0x4488ff);
+                orb.userData.glow.material.opacity = 0.3;
+                orb.scale.set(1, 1, 1);
+            });
+            
+            // Highlight selected
+            selectedChoice = choiceOrb.userData.choice;
+            choiceOrb.userData.originalMaterial.color.setHex(0x44ff44);
+            choiceOrb.userData.glow.material.opacity = 0.6;
+            choiceOrb.scale.set(1.2, 1.2, 1.2);
+            
+            showConfirmation(selectedChoice);
+        }
+        
+        function showConfirmation(choice) {
+            isConfirming = true;
+            
+            // Create confirmation panel
+            confirmationPanel = new THREE.Group();
+            confirmationPanel.position.set(0, 1, -1);
+            
+            // Background
+            const panelGeometry = new THREE.PlaneGeometry(1.8, 0.8);
+            const panelMaterial = new THREE.MeshBasicMaterial({
+                color: 0x000040,
+                transparent: true,
+                opacity: 0.9
+            });
+            const panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
+            confirmationPanel.add(panelMesh);
+            
+            // Text
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'rgba(0, 0, 64, 0.95)';
+            ctx.fillRect(0, 0, 512, 256);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Are you sure?', 256, 80);
+            
+            ctx.font = '18px Arial';
+            ctx.fillText(`Choice ${choice.id}: ${choice.text.substring(0, 40)}...`, 256, 120);
+            
+            ctx.fillStyle = '#44ff44';
+            ctx.fillText('Point UP to confirm', 256, 170);
+            ctx.fillStyle = '#ff4444';
+            ctx.fillText('Point DOWN to cancel', 256, 200);
+            
+            const textTexture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshBasicMaterial({
+                map: textTexture,
+                transparent: true
+            });
+            
+            const textMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.7, 0.7),
+                textMaterial
+            );
+            textMesh.position.z = 0.01;
+            confirmationPanel.add(textMesh);
+            
+            scene.add(confirmationPanel);
+        }
+        
+        function handleConfirmation(controller) {
+            const controllerPos = new THREE.Vector3();
+            controller.getWorldPosition(controllerPos);
+            
+            const panelPos = new THREE.Vector3();
+            confirmationPanel.getWorldPosition(panelPos);
+            
+            if (controllerPos.y > panelPos.y + 0.2) {
+                // Confirmed - process choice
+                processChoice(selectedChoice);
+            } else if (controllerPos.y < panelPos.y - 0.2) {
+                // Cancelled
+                cancelConfirmation();
+            }
+        }
+        
+        function cancelConfirmation() {
+            isConfirming = false;
+            selectedChoice = null;
+            
+            if (confirmationPanel) {
+                scene.remove(confirmationPanel);
+                confirmationPanel = null;
+            }
+            
+            // Reset orb selections
+            choiceOrbs.forEach(orb => {
+                orb.userData.originalMaterial.color.setHex(0x4488ff);
+                orb.userData.glow.material.opacity = 0.3;
+                orb.scale.set(1, 1, 1);
+            });
+        }
+        
+        function processChoice(choice) {
+            clearDecisionUI();
+            
+            // Reset video speed
+            videoElement.playbackRate = 1.0;
+            isDecisionTime = false;
+            isConfirming = false;
+            
+            if (choice.correct) {
+                showTransition('correct');
+                setTimeout(() => {
+                    if (choice.next === 'complete') {
+                        completeTraining();
+                    } else {
+                        startScenario(choice.next);
+                    }
+                }, 2000);
+            } else {
+                showTransition('incorrect');
+                setTimeout(() => {
+                    startScenario(currentScenario); // Repeat scenario
+                }, 2000);
+            }
+        }
+        
+        function showTransition(type) {
+            const color = type === 'correct' ? 0x44ff44 : 0xff4444;
+            const text = type === 'correct' ? 'Correct!' : 'Try Again';
+            
+            // Create transition effect
+            transitionEffect = new THREE.Group();
+            
+            // Flash effect
+            const flashGeometry = new THREE.SphereGeometry(15, 16, 16);
+            const flashMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.BackSide
+            });
+            const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+            transitionEffect.add(flash);
+            
+            // Text
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = type === 'correct' ? '#44ff44' : '#ff4444';
+            ctx.font = 'bold 72px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 256, 128);
+            
+            const textTexture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshBasicMaterial({
+                map: textTexture,
+                transparent: true
+            });
+            
+            const textMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(3, 1.5),
+                textMaterial
+            );
+            textMesh.position.set(0, 1.6, -2);
+            transitionEffect.add(textMesh);
+            
+            scene.add(transitionEffect);
+            
+            // Animate transition
+            let startTime = Date.now();
+            const animateTransition = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / 2000, 1);
+                
+                flash.material.opacity = 0.3 * (1 - progress);
+                textMesh.material.opacity = 1 - progress;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateTransition);
+                } else {
+                    scene.remove(transitionEffect);
+                    transitionEffect = null;
+                }
+            };
+            animateTransition();
+            
+            updateStatus(type === 'correct' ? 'Correct choice! Proceeding...' : 'Incorrect. Let\'s try again...');
+        }
+        
+        function clearDecisionUI() {
+            if (decisionPanel) {
+                scene.remove(decisionPanel);
+                decisionPanel = null;
+            }
+            
+            if (confirmationPanel) {
+                scene.remove(confirmationPanel);
+                confirmationPanel = null;
+            }
+            
+            choiceOrbs.forEach(orb => {
+                if (orb.parent) orb.parent.remove(orb);
+            });
+            choiceOrbs = [];
+        }
+        
+        function completeTraining() {
+            clearDecisionUI();
+            
+            // Show completion message
+            const completionGroup = new THREE.Group();
+            completionGroup.position.set(0, 1.6, -2);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+            gradient.addColorStop(0, 'rgba(0, 100, 0, 0.9)');
+            gradient.addColorStop(1, 'rgba(0, 50, 0, 0.9)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 512);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Training Complete!', 512, 200);
+            
+            ctx.font = '24px Arial';
+            ctx.fillText('Well done! You have completed all scenarios.', 512, 280);
+            ctx.fillText('Exit VR to return to the main menu.', 512, 320);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true
+            });
+            
+            const mesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(4, 2),
+                material
+            );
+            completionGroup.add(mesh);
+            scene.add(completionGroup);
+            
+            updateStatus('Training completed successfully!');
+            updateProgress('Complete');
+        }
+        
+        function updateProgress(customText = null) {
+            document.getElementById('current-scenario').textContent = currentScenario;
+            document.getElementById('total-scenarios').textContent = Object.keys(scenarios).length;
+            document.getElementById('scenario-progress').textContent = customText || (isDecisionTime ? 'Decision Time' : 'Watching');
+        }
+        
+        function updateStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                if (!message.includes('not supported')) {
+                    status.style.display = 'none';
+                }
+            }, 3000);
+        }
+        
+        function render() {
+            // Animate choice orbs
+            choiceOrbs.forEach((orb, index) => {
+                const time = Date.now() * 0.001;
+                orb.rotation.y = time + index;
+                
+                // Subtle floating animation
+                const baseY = orb.position.y;
+                orb.position.y = baseY + Math.sin(time * 2 + index) * 0.01;
+                
+                // Subtle glow pulsing
+                if (orb.userData.glow) {
+                    const pulse = 0.3 + Math.sin(time * 3 + index) * 0.1;
+                    orb.userData.glow.material.opacity = pulse;
+                }
+            });
+            
+            // Update video texture
+            if (videoTexture && videoElement.readyState >= videoElement.HAVE_CURRENT_DATA) {
+                videoTexture.needsUpdate = true;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function onSessionEnd() {
+            document.body.classList.remove('xr-active');
+            document.getElementById('status').style.display = 'none';
+            
+            // Reset all state
+            currentScenario = 1;
+            isDecisionTime = false;
+            isConfirming = false;
+            selectedChoice = null;
+            isPlaying = false;
+            
+            // Clear scene
+            clearDecisionUI();
+            if (immersiveSphere) {
+                scene.remove(immersiveSphere);
+                immersiveSphere = null;
+            }
+            if (transitionEffect) {
+                scene.remove(transitionEffect);
+                transitionEffect = null;
+            }
+            
+            // Remove controllers
+            controllers.forEach(controller => scene.remove(controller));
+            controllers = [];
+            
+            // Stop video
+            if (videoElement) {
+                videoElement.pause();
+                videoElement.currentTime = 0;
+            }
+            
+            renderer.setAnimationLoop(null);
+            xrSession = null;
+            
+            // Show intro again
+            document.getElementById('intro').style.display = 'flex';
+        }
+    </script>
 </body>
 </html>
